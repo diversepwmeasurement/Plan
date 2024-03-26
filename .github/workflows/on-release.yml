@@ -1,138 +1,178 @@
-name: Release
-
-on:
-  release:
-    types: [ published ]
-
 jobs:
-  update_versions_txt:
-    name: Update versions.txt
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout 🛎️
-        uses: actions/checkout@v3
-      - name: Get Download URL
-        run: |
-          curl 'https://api.github.com/repos/plan-player-analytics/plan/releases/${{ github.event.release.id }}/assets' | jq -r '.[] | {name: .name, url: .browser_download_url} | select(.url | strings | test("Fabric") | not)' > asset.txt
-          jq -r '.url' asset.txt > url.txt
-          echo "RELEASE_DOWNLOAD_URL=$(cat url.txt)" >> $GITHUB_ENV
-      - name: Write REL release line
-        if: ${{ github.event.release.prerelease == false }}
-        run: |
-          echo "REL|${{ github.event.release.tag_name }}|${{ env.RELEASE_DOWNLOAD_URL }}|https://github.com/plan-player-analytics/Plan/releases" > release_line.txt
-      - name: Write DEV release line
-        if: ${{ github.event.release.prerelease == true }}
-        run: |
-          echo "DEV|${{ github.event.release.tag_name }}|${{ env.RELEASE_DOWNLOAD_URL }}|${{ github.event.release.html_url }}" > release_line.txt
-      - name: Append to versions.txt
-        run: |
-          cat versions.txt > temp.txt
-          cat release_line.txt temp.txt > versions.txt
-      - name: Commit and push changes
-        uses: EndBug/add-and-commit@v9
-        with:
-          committer_name: GitHub Actions
-          committer_email: 41898282+github-actions[bot]@users.noreply.github.com
-          message: Update versions.txt ${{ github.event.release.name }}
-          add: versions.txt
-          push: origin HEAD:master
-
   update_html:
     name: Update html-branch
-    runs-on: ubuntu-latest
-
+    runs-on: self-hosted
     steps:
-      - name: Checkout 🛎️
-        uses: actions/checkout@v3
-      - name: Get git TAG
-        id: tagName
-        uses: olegtarasov/get-tag@v2.1
-      - name: Copy assets 🔧 
-        run: |
-          mkdir -p workingdir/Plan/src/main/resources/assets/plan
-          mkdir -p workingdir/react/dashboard
-          cp -r Plan/common/src/main/resources/assets/plan workingdir/Plan/src/main/resources/assets/plan
-          cp -r Plan/react/dashboard workingdir/react/dashboard
-      - name: Deploy 🚀
-        uses: JamesIves/github-pages-deploy-action@4.0.0
-        with:
-          branch: html # The branch the action should deploy to.
-          folder: workingdir # The folder the action should deploy.
-          commit-message: ${{ steps.tagName.outputs.tag }}
+    - continue-on-error: true
+      name: "Checkout \U0001F6CE\uFE0F"
+      uses: actions/checkout@v3
+    - continue-on-error: true
+      id: tagName
+      name: Get git TAG
+      uses: olegtarasov/get-tag@v2.1
+    - continue-on-error: true
+      name: "Copy assets \U0001F527"
+      run: 'mkdir -p workingdir/Plan/src/main/resources/assets/plan
 
-  upload_release_ore:
-    name: Ore Upload
-    runs-on: ubuntu-latest
+        mkdir -p workingdir/react/dashboard
+
+        cp -r Plan/common/src/main/resources/assets/plan workingdir/Plan/src/main/resources/assets/plan
+
+        cp -r Plan/react/dashboard workingdir/react/dashboard
+
+        '
+    - continue-on-error: true
+      name: "Deploy \U0001F680"
+      uses: JamesIves/github-pages-deploy-action@4.0.0
+      with:
+        branch: html
+        commit-message: ${{ steps.tagName.outputs.tag }}
+        folder: workingdir
+  update_versions_txt:
+    name: Update versions.txt
+    runs-on: self-hosted
     steps:
-      - name: Download release artifact for upload
-        run: |
-          curl 'https://api.github.com/repos/plan-player-analytics/plan/releases/${{ github.event.release.id }}/assets' | jq -r '.[] | {name: .name, url: .browser_download_url} | select(.url | strings | test("Fabric") | not)' > asset.txt
-          jq -r '.url' asset.txt > url.txt
-          jq -r '.name' asset.txt > name.txt
-          wget -i url.txt
-          echo "JAR_FILENAME=$(cat name.txt)" >> $GITHUB_ENV
-      - name: Upload artifact for ore upload
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ github.event.release.name }}
-          path: ${{ env.JAR_FILENAME }}
-      - name: Upload release to Ore 🚀
-        if: ${{ github.event.release.prerelease == false }}
-        uses: dualspiral/ore-upload-action@v2
-        with:
-          plugin: ${{ github.event.release.name }}
-          description: ${{ github.event.release.body }}
-          apiKey: ${{ secrets.ORE_API_TOKEN }}
-          channel: Release
-          pluginId: plan
-          createForumPost: true
-      - name: Upload DEV release to Ore 🚀
-        if: ${{ github.event.release.prerelease == true }}
-        uses: dualspiral/ore-upload-action@v1
-        with:
-          plugin: ${{ github.event.release.name }}
-          description: ${{ github.event.release.body }}
-          apiKey: ${{ secrets.ORE_API_TOKEN }}
-          channel: DEV
-          pluginId: plan
-          createForumPost: false
+    - continue-on-error: true
+      name: "Checkout \U0001F6CE\uFE0F"
+      uses: actions/checkout@v3
+    - continue-on-error: true
+      name: Get Download URL
+      run: 'curl ''https://api.github.com/repos/plan-player-analytics/plan/releases/${{
+        github.event.release.id }}/assets'' | jq -r ''.[] | {name: .name, url: .browser_download_url}
+        | select(.url | strings | test("Fabric") | not)'' > asset.txt
 
+        jq -r ''.url'' asset.txt > url.txt
+
+        echo "RELEASE_DOWNLOAD_URL=$(cat url.txt)" >> $GITHUB_ENV
+
+        '
+    - continue-on-error: true
+      if: ${{ github.event.release.prerelease == false }}
+      name: Write REL release line
+      run: 'echo "REL|${{ github.event.release.tag_name }}|${{ env.RELEASE_DOWNLOAD_URL
+        }}|https://github.com/plan-player-analytics/Plan/releases" > release_line.txt
+
+        '
+    - continue-on-error: true
+      if: ${{ github.event.release.prerelease == true }}
+      name: Write DEV release line
+      run: 'echo "DEV|${{ github.event.release.tag_name }}|${{ env.RELEASE_DOWNLOAD_URL
+        }}|${{ github.event.release.html_url }}" > release_line.txt
+
+        '
+    - continue-on-error: true
+      name: Append to versions.txt
+      run: 'cat versions.txt > temp.txt
+
+        cat release_line.txt temp.txt > versions.txt
+
+        '
+    - continue-on-error: true
+      name: Commit and push changes
+      uses: EndBug/add-and-commit@v9
+      with:
+        add: versions.txt
+        committer_email: 41898282+github-actions[bot]@users.noreply.github.com
+        committer_name: GitHub Actions
+        message: Update versions.txt ${{ github.event.release.name }}
+        push: origin HEAD:master
   upload_release_curseforge:
     name: CurseForge Upload
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
-      - name: Download release artifact for upload
-        run: |
-          curl 'https://api.github.com/repos/plan-player-analytics/plan/releases/${{ github.event.release.id }}/assets' | jq -r '.[] | {name: .name, url: .browser_download_url} | select(.url | strings | test("Fabric"))' > asset.txt
-          jq -r '.url' asset.txt > url.txt
-          jq -r '.name' asset.txt > name.txt
-          wget -i url.txt
-          echo "JAR_FILENAME=$(cat name.txt)" >> $GITHUB_ENV
-      - name: Upload release to CurseForge 🚀
-        if: ${{ github.event.release.prerelease == false }}
-        uses: itsmeow/curseforge-upload@master
-        with:
-          token: ${{ secrets.CF_API_TOKEN }}
-          project_id: 508727
-          game_endpoint: minecraft
-          file_path: ${{ env.JAR_FILENAME }}
-          changelog: ${{ github.event.release.body }}
-          changelog_type: markdown
-          display_name: ${{ github.event.release.name }}
-          game_versions: "2:Java 17,75125:1.20,Fabric"
-          release_type: release
-          relations: fabric-api:requiredDependency,luckperms:optionalDependency
-      - name: Upload prerelease to CurseForge 🚀
-        if: ${{ github.event.release.prerelease == true }}
-        uses: itsmeow/curseforge-upload@master
-        with:
-          token: ${{ secrets.CF_API_TOKEN }}
-          project_id: 508727
-          game_endpoint: minecraft
-          file_path: ${{ env.JAR_FILENAME }}
-          changelog: ${{ github.event.release.body }}
-          changelog_type: markdown
-          display_name: ${{ github.event.release.name }}
-          game_versions: "2:Java 17,75125:1.20,Fabric"
-          release_type: beta
-          relations: fabric-api:requiredDependency,luckperms:optionalDependency
+    - continue-on-error: true
+      name: Download release artifact for upload
+      run: 'curl ''https://api.github.com/repos/plan-player-analytics/plan/releases/${{
+        github.event.release.id }}/assets'' | jq -r ''.[] | {name: .name, url: .browser_download_url}
+        | select(.url | strings | test("Fabric"))'' > asset.txt
+
+        jq -r ''.url'' asset.txt > url.txt
+
+        jq -r ''.name'' asset.txt > name.txt
+
+        wget -i url.txt
+
+        echo "JAR_FILENAME=$(cat name.txt)" >> $GITHUB_ENV
+
+        '
+    - continue-on-error: true
+      if: ${{ github.event.release.prerelease == false }}
+      name: "Upload release to CurseForge \U0001F680"
+      uses: itsmeow/curseforge-upload@master
+      with:
+        changelog: ${{ github.event.release.body }}
+        changelog_type: markdown
+        display_name: ${{ github.event.release.name }}
+        file_path: ${{ env.JAR_FILENAME }}
+        game_endpoint: minecraft
+        game_versions: 2:Java 17,75125:1.20,Fabric
+        project_id: 508727
+        relations: fabric-api:requiredDependency,luckperms:optionalDependency
+        release_type: release
+        token: ${{ secrets.CF_API_TOKEN }}
+    - continue-on-error: true
+      if: ${{ github.event.release.prerelease == true }}
+      name: "Upload prerelease to CurseForge \U0001F680"
+      uses: itsmeow/curseforge-upload@master
+      with:
+        changelog: ${{ github.event.release.body }}
+        changelog_type: markdown
+        display_name: ${{ github.event.release.name }}
+        file_path: ${{ env.JAR_FILENAME }}
+        game_endpoint: minecraft
+        game_versions: 2:Java 17,75125:1.20,Fabric
+        project_id: 508727
+        relations: fabric-api:requiredDependency,luckperms:optionalDependency
+        release_type: beta
+        token: ${{ secrets.CF_API_TOKEN }}
+  upload_release_ore:
+    name: Ore Upload
+    runs-on: self-hosted
+    steps:
+    - continue-on-error: true
+      name: Download release artifact for upload
+      run: 'curl ''https://api.github.com/repos/plan-player-analytics/plan/releases/${{
+        github.event.release.id }}/assets'' | jq -r ''.[] | {name: .name, url: .browser_download_url}
+        | select(.url | strings | test("Fabric") | not)'' > asset.txt
+
+        jq -r ''.url'' asset.txt > url.txt
+
+        jq -r ''.name'' asset.txt > name.txt
+
+        wget -i url.txt
+
+        echo "JAR_FILENAME=$(cat name.txt)" >> $GITHUB_ENV
+
+        '
+    - continue-on-error: true
+      name: Upload artifact for ore upload
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ github.event.release.name }}
+        path: ${{ env.JAR_FILENAME }}
+    - continue-on-error: true
+      if: ${{ github.event.release.prerelease == false }}
+      name: "Upload release to Ore \U0001F680"
+      uses: dualspiral/ore-upload-action@v2
+      with:
+        apiKey: ${{ secrets.ORE_API_TOKEN }}
+        channel: Release
+        createForumPost: true
+        description: ${{ github.event.release.body }}
+        plugin: ${{ github.event.release.name }}
+        pluginId: plan
+    - continue-on-error: true
+      if: ${{ github.event.release.prerelease == true }}
+      name: "Upload DEV release to Ore \U0001F680"
+      uses: dualspiral/ore-upload-action@v1
+      with:
+        apiKey: ${{ secrets.ORE_API_TOKEN }}
+        channel: DEV
+        createForumPost: false
+        description: ${{ github.event.release.body }}
+        plugin: ${{ github.event.release.name }}
+        pluginId: plan
+name: Release
+on:
+  repository_dispatch:
+    types: trigger-ga___on-release.yml
